@@ -77,3 +77,8 @@ def test_summary(client):
     register(client, "d2")
     client.post("/devices/d1/heartbeat", json=HEARTBEAT)
     assert client.get("/summary").json() == {"total": 2, "online": 1, "offline": 1}
+
+def test_dashboard_page(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "Fleet Monitor" in resp.text

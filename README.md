@@ -28,6 +28,8 @@ simulator/simulate.py ──HTTP──▶ src/main.py    API routes; maps errors
 | 409 | Device id already registered |
 | 422 | Invalid input (missing field, bad timestamp, invalid id, `cpu_usage` outside 0–100, unknown status filter) |
 
+- **Simple dashboard** (src/dashboard.html), served at /, uses plain HTML, CSS and a little JavaScript that polls /summary and /devices every 2 seconds. It reuses the existing API, so no extra backend logic was needed.
+
 ## Prerequisites
 
 - Python 3.10 or newer
@@ -50,6 +52,8 @@ uvicorn src.main:app --port 8000
 ```
 
 Interactive API documentation: http://localhost:8000/docs
+
+Dashboard: open http://localhost:8000/ in a browser to see the fleet status update live every 2 seconds.
 
 Optional: change the timeout with the `HEARTBEAT_TIMEOUT_SECONDS` environment variable (default 30), for example `HEARTBEAT_TIMEOUT_SECONDS=10 uvicorn src.main:app --port 8000`.
 

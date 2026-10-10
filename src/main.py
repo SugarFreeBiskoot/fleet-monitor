@@ -1,9 +1,13 @@
 import os
 from datetime import timedelta
+from pathlib import Path
 from typing import Literal, Optional
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from src.models import DeviceCreate, DeviceOut, Heartbeat, Summary
 from src.store import DeviceAlreadyExists, DeviceNotFound, DeviceStore
+
+DASHBOARD_FILE = Path(__file__).parent / "dashboard.html"
 
 def create_app(store: DeviceStore | None = None) -> FastAPI:
     if store is None:
@@ -43,6 +47,10 @@ def create_app(store: DeviceStore | None = None) -> FastAPI:
     @app.get("/summary", response_model=Summary)
     def get_summary():
         return store.summary()
+
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    def dashboard():
+        return DASHBOARD_FILE.read_text(encoding="utf-8")
 
     return app
 

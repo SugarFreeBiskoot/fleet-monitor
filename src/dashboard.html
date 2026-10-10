@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fleet Monitor</title>
+  <style>
+    body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 24px;
+           background: #f5f6f8; color: #1f2328; }
+    h1 { margin: 0 0 4px; font-size: 22px; }
+    .updated { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
+    .error { color: #b42318; }
+    .cards { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 20px; min-width: 110px; }
+    .card .label { color: #6b7280; font-size: 13px; }
+    .card .value { font-size: 28px; font-weight: 600; }
+    .online-text { color: #1a7f37; }
+    .offline-text { color: #b42318; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eef0f2; font-size: 14px; }
+    th { background: #fafafa; color: #6b7280; font-weight: 600; }
+    .badge { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge.ONLINE { background: #dafbe1; color: #1a7f37; }
+    .badge.OFFLINE { background: #ffebe9; color: #b42318; }
+  </style>
+</head>
+<body>
+  <h1>Fleet Monitor</h1>
+  <div class="updated" id="updated">Loading…</div>
+
+  <div class="cards">
+    <div class="card"><div class="label">Total</div><div class="value" id="total">–</div></div>
+    <div class="card"><div class="label">Online</div><div class="value online-text" id="online">–</div></div>
+    <div class="card"><div class="label">Offline</div><div class="value offline-text" id="offline">–</div></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Status</th><th>Last heartbeat</th><th>CPU %</th><th>Signal (dBm)</th></tr>
+    </thead>
+    <tbody id="devices"></tbody>
+  </table>
+
+  <script>
+    // Ask the API for the latest data, then redraw the page. Runs every 2 seconds.
+    async function refresh() {
+      try {
+        const summary = await (await fetch("/summary")).json();
+        const devices = await (await fetch("/devices")).json();
+
+        document.getElementById("total").textContent = summary.total;
+        document.getElementById("online").textContent = summary.online;
+        document.getElementById("offline").textContent = summary.offline;
+
+        const tbody = document.getElementById("devices");
+        tbody.innerHTML = "";
+        for (const d of devices) {
+          const row = tbody.insertRow();
+          // textContent (not innerHTML) so device names can never inject HTML into the page
+          row.insertCell().textContent = d.id;
+          row.insertCell().textContent = d.name;
+          const badge = document.createElement("span");
+          badge.className = "badge " + d.status;
+          badge.textContent = d.status;
+          row.insertCell().appendChild(badge);
+          row.insertCell().textContent = secondsAgo(d.last_seen);
+          row.insertCell().textContent = d.cpu_usage ?? "–";
+          row.insertCell().textContent = d.signal_strength ?? "–";
+        }
+        if (devices.length === 0) {
+          tbody.insertRow().insertCell().textContent = "No devices registered yet.";
+        }
+        const updated = document.getElementById("updated");
+        updated.className = "updated";
+        updated.textContent = "Updated " + new Date().toLocaleTimeString() + " · refreshes every 2 s";
+      } catch (err) {
+        const updated = document.getElementById("updated");
+        updated.className = "updated error";
+        updated.textContent = "Cannot reach the server: " + err;
+      }
+    }
+
+    function secondsAgo(isoTime) {
+      if (!isoTime) return "never";
+      const seconds = Math.round((Date.now() - new Date(isoTime)) / 1000);
+      return seconds + " s ago";
+    }
+
+    refresh();
+    setInterval(refresh, 2000);
+  </script>
+</body>
+</html>
